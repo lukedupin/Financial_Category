@@ -23,6 +23,10 @@ class Command(BaseCommand):
             else:
                 unknown = filter
 
+        if unknown is None:
+            print("Unknown not found.  We need this")
+            return
+
         # Load up the account
         account = Account.getByName(options['account'])
         if account is None:
@@ -38,19 +42,24 @@ class Command(BaseCommand):
                 continue
 
             #Grab the data
-            data = line.rstrip().split(',')
+            line = line.rstrip()
+            match = re.search(r'(".*")', line)
+            data = line.replace(match[1], 'REPLACE').split(',')
+
+            # Date
             date_split = data[1].split('/')
             date = parse_date("%s-%s-%s" % (date_split[2], date_split[0], date_split[1]))
 
             # Create the entry
             entry = Entry.getOrNew(account=account,
-                                   name=data[2].lower(),
+                                   name=match[1],
                                    amount=Decimal.from_float(float(data[3])),
                                    timestamp=date)
 
             # Attach a filter
+            code = match[1].lower()
             for filter in filters:
-                if re.search(filter.regex, entry.name) is not None:
+                if re.search(filter.regex, code) is not None:
                     entry.filter = filter
             if entry.filter_id == 0 or entry.filter_id is None:
                 entry.filter = unknown
