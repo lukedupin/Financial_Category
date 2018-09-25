@@ -1,10 +1,8 @@
 from django.core.management.base import BaseCommand
-
-from django.core.cache import cache
+from decimal import Decimal
+from django.utils.dateparse import parse_date
 
 from website.models import Account, Category, Entry, Filter
-
-from django.utils.dateparse import parse_date
 
 import re
 
@@ -32,19 +30,29 @@ class Command(BaseCommand):
             return
 
         # Load up the csv file
+        header = True
         out = open( options['csv_file'])
         for line in out.readlines():
+            if header:
+                header = False
+                continue
+
+            #Grab the data
             data = line.rstrip().split(',')
-            date = parse_date(data[1])
+            date_split = data[1].split('/')
+            date = parse_date("%s-%s-%s" % (date_split[2], date_split[0], date_split[1]))
 
             # Create the entry
-            entry = Entry.getOrNew(name=data[2],amount=float(data[3]), timestamp=date)
+            entry = Entry.getOrNew(account=account,
+                                   name=data[2].lower(),
+                                   amount=Decimal.from_float(float(data[3])),
+                                   timestamp=date)
 
             # Attach a filter
             for filter in filters:
                 if re.search(filter.regex, entry.name) is not None:
                     entry.filter = filter
-            if entry.filter is None:
+            if entry.filter_id == 0 or entry.filter_id is None:
                 entry.filter = unknown
 
             # Save the entry out

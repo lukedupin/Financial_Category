@@ -13,6 +13,7 @@ class Entry(models.Model):
     filter          = models.ForeignKey(Filter, on_delete=models.CASCADE)
 
     name            = models.CharField(max_length=64)
+    expense_note    = models.CharField(max_length=256,default=None,null=True,help_text="Enter an expense here to mark this as an expensed item")
     amount          = models.DecimalField(max_digits=12,decimal_places=2)
 
     timestamp       = models.DateField()
@@ -32,13 +33,13 @@ class Entry(models.Model):
             return None
 
     @staticmethod
-    def getOrNew( name, amount, timestamp ):
+    def getOrNew( account, name, amount, timestamp ):
         try:
-            entries = Entry.objects.filter(name=name, amount=amount, timestamp=timestamp)
+            entries = Entry.objects.filter(account=account, name=name, amount=amount, timestamp=timestamp)
             if len(entries) > 0:
-                return entries[1]
+                return entries[0]
 
-            return Entry(name=name, amount=amount, timestamp=timestamp)
+            return Entry(account=account, name=name, amount=amount, timestamp=timestamp)
 
         except Entry.DoesNotExist:
             return None
